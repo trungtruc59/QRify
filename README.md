@@ -1,0 +1,2 @@
+# QRify
+Generation qr code
