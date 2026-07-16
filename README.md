@@ -1,36 +1,93 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# QRify
 
-## Getting Started
+Ứng dụng web tạo mã QR tùy chỉnh, đăng nhập bằng Google (NextAuth).
 
-First, run the development server:
+## Tính năng
+
+- **Đăng nhập Google** — Auth.js / NextAuth v5, trang `/login`
+- **Dashboard bảo vệ** — middleware proxy chặn truy cập khi chưa đăng nhập
+- **Tạo mã QR từ URL** — chuẩn hóa `http`/`https`, báo lỗi URL không hợp lệ
+- **Tùy chỉnh** — 6 kiểu chấm (vuông, chấm tròn, bo góc, classy, …) và màu sắc
+- **Tải xuống PNG** — kích thước 250×250 hoặc 500×500 px
+- **Menu tài khoản** — avatar Google, thông tin user, đăng xuất
+
+## Stack
+
+| Thành phần | Công nghệ |
+|---|---|
+| Framework | Next.js 16 (App Router), React 19 |
+| UI | Tailwind CSS 4 |
+| Auth | NextAuth v5 (Google OAuth) |
+| QR | `qr-code-styling` |
+| Database (chuẩn bị) | MongoDB / Mongoose |
+
+## Cấu trúc chính
+
+```
+app/
+  page.tsx                 # Redirect theo session → /dashboard hoặc /login
+  login/page.tsx           # Đăng nhập Google
+  dashboard/               # Trình tạo QR (yêu cầu đăng nhập)
+  api/auth/[...nextauth]/ # Auth API route
+  actions/auth.ts          # Server action đăng xuất
+auth.ts                    # Cấu hình NextAuth
+proxy.ts                   # Bảo vệ route /dashboard
+components/
+  qr-generator.tsx         # Form tạo & tải QR
+  options-dropdown.tsx     # Menu tài khoản
+  sign-out-button.tsx
+lib/db.ts                  # Kết nối MongoDB (chuẩn bị dùng)
+```
+
+## Bắt đầu
+
+### 1. Cài đặt
+
+```bash
+npm install
+```
+
+### 2. Biến môi trường
+
+Sao chép `.env.example` thành `.env.local` và điền giá trị:
+
+```env
+AUTH_SECRET=          # openssl rand -base64 32
+AUTH_URL=http://localhost:3000
+AUTH_GOOGLE_ID=       # Google Cloud OAuth Client ID
+AUTH_GOOGLE_SECRET=   # Google Cloud OAuth Client Secret
+# MONGODB_URI=        # (tuỳ chọn) khi dùng lưu trữ MongoDB
+```
+
+Tạo OAuth Client tại [Google Cloud Console](https://console.cloud.google.com/apis/credentials).  
+Authorized redirect URI: `http://localhost:3000/api/auth/callback/google`
+
+### 3. Chạy dev
 
 ```bash
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Mở [http://localhost:3000](http://localhost:3000).
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+### Scripts khác
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+```bash
+npm run build   # build production
+npm start       # chạy bản build
+npm run lint    # ESLint
+```
 
-## Learn More
+## Luồng người dùng
 
-To learn more about Next.js, take a look at the following resources:
+1. Vào trang chủ → chuyển tới `/login` nếu chưa đăng nhập
+2. Đăng nhập bằng Google → vào `/dashboard`
+3. Nhập URL, chọn kiểu & màu → tạo mã QR
+4. Xem preview và tải PNG theo kích thước mong muốn
+5. Đăng xuất từ menu avatar
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## Ghi chú phát triển
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+- Ảnh avatar Google được phép qua `images.domains` trong `next.config.ts`
+- `lib/db.ts` đã có sẵn helper kết nối MongoDB; auth hiện chỉ dùng Google provider (chưa gắn adapter)
+- File `.env*` bị ignore; chỉ commit `.env.example`
